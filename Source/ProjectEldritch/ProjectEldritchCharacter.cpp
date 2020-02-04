@@ -50,6 +50,8 @@ AProjectEldritchCharacter::AProjectEldritchCharacter()
 	// Create ability system component, and set it to be explicitly replicated
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(true);
+	// Create the attribute set, this replicates by default
+	AttributeSet = CreateDefaultSubobject<UBaseAttributeSet>(TEXT("AttributeSet"));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -81,6 +83,10 @@ void AProjectEldritchCharacter::SetupPlayerInputComponent(class UInputComponent*
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AProjectEldritchCharacter::OnResetVR);
 }
 
+UAbilitySystemComponent* AProjectEldritchCharacter::GetAbilitySystemComponent() const
+{
+	return AbilitySystemComponent;
+}
 
 void AProjectEldritchCharacter::OnResetVR()
 {
@@ -100,6 +106,12 @@ void AProjectEldritchCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVec
 void AProjectEldritchCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// Initialize our abilities
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->InitAbilityActorInfo(this, this);
+	}
 
 	// Grant abilities, but only on the server	
 	for (TSubclassOf<UGameplayAbility>& StartupAbility : GameplayAbilities)
@@ -147,4 +159,21 @@ void AProjectEldritchCharacter::MoveRight(float Value)
 		// add movement in that direction
 		AddMovementInput(Direction, Value);
 	}
+}
+
+float AProjectEldritchCharacter::GetHealth() const
+{
+	return AttributeSet->GetHealth();
+}
+
+float AProjectEldritchCharacter::GetMaxHealth() const
+{
+	return AttributeSet->GetMaxHealth();
+}
+
+void AProjectEldritchCharacter::HandleHealthChanged(float DeltaValue, const struct FGameplayTagContainer& EventTags)
+{
+	// We only call the BP callback if this is not the initial ability setup
+
+		OnHealthChanged(DeltaValue, EventTags);
 }
